@@ -15,11 +15,12 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
   clearError: () => void;
+  checkAuth: () => Promise<boolean>;
 }
 
 // persist 미들웨어를 사용하여 로컬 스토리지에 상태 저장
@@ -39,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
           const { token, user } = response.data;
           
           // 토큰을 저장하고 API 인스턴스의 기본 헤더에 설정
+          localStorage.setItem('token', token);
           api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
           set({ 
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true, 
             isLoading: false 
           });
+          return true;
         } catch (error: any) {
           console.error('Login error:', error);
           set({ 
@@ -108,10 +111,46 @@ export const useAuthStore = create<AuthState>()(
       },
       
       clearError: () => set({ error: null }),
+      
+      checkAuth: async () => {
+        set({ isLoading: true });
+        try {
+          // 토큰이 이미 있는지 확인
+          const token = localStorage.getItem('token');
+          if (!token) {
+            set({ isAuthenticated: false, isLoading: false });
+            return false;
+          }
+          
+          // 사용자 정보 가져오기
+          const response = await api.get('/protected/profile');
+          if (response.status === 200) {
+            set({ 
+              isAuthenticated: true, 
+              user: response.data,
+              isLoading: false 
+            });
+            return true;
+          }
+        } catch (error) {
+          console.error('인증 확인 실패:', error);
+          localStorage.removeItem('token');
+          set({ 
+            isAuthenticated: false, 
+            user: null,
+            isLoading: false 
+          });
+        }
+        return false;
+      },
     }),
     {
       name: 'auth-storage', // 로컬 스토리지에 저장될 키 이름
-      partialize: (state) => ({ token: state.token }), // 토큰만 저장
+      partialize: (state) => ({ 
+        token: state.token,
+        user: state.user, 
+        isAuthenticated: state.isAuthenticated 
+      }),
     }
   )
 );

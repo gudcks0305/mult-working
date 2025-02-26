@@ -1,67 +1,58 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
-import { BottomNavigation as MuiBottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import { Home, Chat, Person, Login, Logout } from '@mui/icons-material';
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { Home, MessageSquare, User, Settings } from 'lucide-react';
 
-const BottomNavigationBar: React.FC = () => {
+const BottomNavigation: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const currentPath = location.pathname;
   
-  const getPathValue = () => {
-    const path = location.pathname;
-    if (path === '/') return 0;
-    if (path === '/chat') return 1;
-    if (path === '/profile') return 2;
-    if (path === '/login' || path === '/logout') return 3;
-    return -1;
-  };
-  
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    switch (newValue) {
-      case 0:
-        navigate('/');
-        break;
-      case 1:
-        navigate('/chat');
-        break;
-      case 2:
-        navigate('/profile');
-        break;
-      case 3:
-        navigate(isAuthenticated ? '/logout' : '/login');
-        break;
+  const navItems = [
+    {
+      icon: <Home className="h-5 w-5" />,
+      label: '홈',
+      path: '/'
+    },
+    {
+      icon: <MessageSquare className="h-5 w-5" />,
+      label: '채팅',
+      path: '/chat'
+    },
+    {
+      icon: <User className="h-5 w-5" />,
+      label: '프로필',
+      path: '/profile'
+    },
+    {
+      icon: <Settings className="h-5 w-5" />,
+      label: '설정',
+      path: '/settings'
     }
-  };
+  ];
   
   return (
-    <Paper 
-      sx={{ 
-        position: 'fixed', 
-        bottom: 0, 
-        left: 0, 
-        right: 0, 
-        display: { xs: 'block', md: 'none' },
-        zIndex: 1000
-      }} 
-      elevation={3}
-    >
-      <MuiBottomNavigation
-        showLabels
-        value={getPathValue()}
-        onChange={handleChange}
-      >
-        <BottomNavigationAction label="홈" icon={<Home />} />
-        {isAuthenticated && <BottomNavigationAction label="채팅" icon={<Chat />} />}
-        {isAuthenticated && <BottomNavigationAction label="프로필" icon={<Person />} />}
-        <BottomNavigationAction 
-          label={isAuthenticated ? "로그아웃" : "로그인"} 
-          icon={isAuthenticated ? <Logout /> : <Login />} 
-        />
-      </MuiBottomNavigation>
-    </Paper>
+    <div className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t flex justify-around items-center z-50">
+      {navItems.map((item) => {
+        const isActive = currentPath === item.path;
+        
+        return (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={cn(
+              "flex flex-col items-center justify-center w-full h-full",
+              isActive 
+                ? "text-primary" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {item.icon}
+            <span className="text-xs mt-1">{item.label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 };
 
-export default BottomNavigationBar; 
+export default BottomNavigation; 

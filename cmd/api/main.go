@@ -2,16 +2,15 @@ package main
 
 import (
 	"context"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/fx"
+	"gorm.io/gorm"
 	"mult-working/internal/config"
 	"mult-working/internal/handler"
 	"mult-working/internal/middleware"
 	"mult-working/internal/service"
 	"mult-working/pkg/database"
 	"mult-working/pkg/kafka"
-
-	"github.com/gin-gonic/gin"
-	"go.uber.org/fx"
-	"gorm.io/gorm"
 )
 
 func main() {

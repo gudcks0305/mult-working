@@ -68,7 +68,7 @@ func (s *AuthService) Register(req dto.RegisterRequest) error {
 // Login은 사용자를 인증하고 PASETO 토큰을 반환합니다
 func (s *AuthService) Login(req dto.LoginRequest) (*dto.TokenResponse, error) {
 	var user models.User
-	if result := s.db.Where("username = ?", req.Username).First(&user); result.Error != nil {
+	if result := s.db.Where("username = ? OR email = ?", req.Username, req.Username).First(&user); result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
 			return nil, errors.ErrUserNotFound
 		}

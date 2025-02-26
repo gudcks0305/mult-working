@@ -1,34 +1,39 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 import { Message as MessageType } from '../../types/message';
+import { formatMessageTime } from '../../utils/date';
 
 interface MessageProps {
   message: MessageType;
-  isOwnMessage: boolean;
+  isCurrentUser: boolean;
 }
 
-const Message: React.FC<MessageProps> = ({ message, isOwnMessage }) => {
+const Message: React.FC<MessageProps> = ({ message, isCurrentUser }) => {
+  const formattedTime = formatMessageTime(message.createdAt);
+  const firstLetter = message.username ? message.username.charAt(0).toUpperCase() : '?';
+  
   return (
-    <Box 
-      sx={{ 
-        display: 'flex', 
-        justifyContent: isOwnMessage ? 'flex-end' : 'flex-start', 
-        mb: 2 
-      }}
-    >
-      <Typography 
-        variant="body1" 
-        sx={{ 
-          backgroundColor: isOwnMessage ? 'primary.main' : 'grey.300', 
-          color: isOwnMessage ? 'white' : 'black', 
-          borderRadius: 1, 
-          p: 1, 
-          maxWidth: '70%' 
-        }}
-      >
-        {message.content}
-      </Typography>
-    </Box>
+    <div className={`flex items-start gap-2 group ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+      {!isCurrentUser && (
+        <Avatar className="h-8 w-8 mt-1">
+          <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${message.username}`} />
+          <AvatarFallback>{firstLetter}</AvatarFallback>
+        </Avatar>
+      )}
+      
+      <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+        <Card className={`max-w-[80%] ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
+          <CardContent className="p-3 break-words">
+            {message.content}
+          </CardContent>
+        </Card>
+        
+        <span className="text-xs text-muted-foreground mt-1 opacity-70 group-hover:opacity-100">
+          {formattedTime}
+        </span>
+      </div>
+    </div>
   );
 };
 

@@ -1,79 +1,47 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useAuthStore } from './store/authStore';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import HomePage from './pages/HomePage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ChatPage from './pages/ChatPage';
-import ChatRoom from './components/ChatRoom';
-import ProfilePage from './pages/ProfilePage';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import BottomNavigation from './components/layout/BottomNavigation';
 import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
+import LoginForm from './components/auth/LoginForm';
+import RegisterForm from './components/auth/RegisterForm';
+import HomePage from './pages/HomePage';
+import ChatPage from './pages/ChatPage';
+import ProfilePage from './pages/ProfilePage';
+import ChatRoom from './components/ChatRoom';
+import BottomNavigation from './components/layout/BottomNavigation';
 
-// MUI 테마 생성
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#9c27b0',
-    },
-  },
-});
-
-function App() {
-  const { fetchUser } = useAuthStore();
-  
-  useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
-  
+const App: React.FC = () => {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div>
+      <BrowserRouter>
+        <div className="min-h-screen flex flex-col bg-background text-foreground">
           <Navbar />
-          <main style={{ flex: 1, paddingBottom: '56px' }}>
+          
+          <main className="flex-1 container mx-auto px-4 pt-6 pb-20 md:pb-6">
             <Routes>
+              {/* 공개 라우트 */}
               <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route 
-                path="/chat" 
-                element={
-                  <ProtectedRoute>
-                    <ChatPage />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/chat/:roomId" 
-                element={
-                  <ProtectedRoute>
-                    <ChatRoom />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                } 
-              />
+              <Route path="/login" element={<LoginForm />} />
+              <Route path="/register" element={<RegisterForm />} />
+              
+              {/* 보호된 라우트 */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/chat" element={<ChatPage />} />
+                <Route path="/chat/room/:roomId" element={<ChatRoom />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                {/* <Route path="/settings" element={<SettingsPage />} /> */}
+              </Route>
+              
+              {/* 기본 리다이렉트 */}
+              <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>
+          
           <BottomNavigation />
         </div>
-      </Router>
-    </ThemeProvider>
+      </BrowserRouter>
+    </div>
   );
-}
+};
 
 export default App;

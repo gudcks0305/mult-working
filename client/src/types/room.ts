@@ -6,6 +6,7 @@ export interface Room {
   createdAt: string;
   createdBy?: number;
   ownerId?: number;
+  unreadCount?: number;
 }
 
 export interface RoomState {
@@ -16,10 +17,11 @@ export interface RoomState {
   error: string | null;
   
   fetchRooms: () => Promise<void>;
-  fetchUserRooms: () => Promise<void>;
+  fetchUserRooms: () => Promise<Room[]>;
   createRoom: (name: string, description?: string) => Promise<boolean>;
   joinRoom: (roomId: number) => Promise<boolean>;
   leaveRoom: (roomId: number) => Promise<boolean>;
   setCurrentRoom: (room: Room | null) => void;
   clearError: () => void;
+  getRoomById: (roomId: number) => Promise<Room | null>;
 } 

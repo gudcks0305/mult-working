@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useRoomStore } from '../store/roomStore';
 import { useMessageStore } from '../store/messageStore';
 import { useAuthStore } from '../store/authStore';
-import { Box } from '@mui/material';
 import RoomHeader from './chat/RoomHeader';
 import MessageList from './chat/MessageList';
 import MessageInput from './chat/MessageInput';
@@ -15,7 +14,8 @@ const ChatRoom: React.FC = () => {
   const { user } = useAuthStore();
   const { 
     currentRoom, 
-    fetchUserRooms, 
+    fetchUserRooms,
+    getRoomById,
     leaveRoom, 
     setCurrentRoom 
   } = useRoomStore();
@@ -35,9 +35,25 @@ const ChatRoom: React.FC = () => {
     clearError
   } = useMessageStore();
   
+  // 함수 추가
+  const fetchRoomById = async (id: number) => {
+    // 이미 userRooms에 있는지 확인
+    const rooms = useRoomStore.getState().userRooms;
+    const room = rooms.find(r => r.id === id);
+    
+    if (room) {
+      return room;
+    }
+    
+    // API에서 직접 가져오기
+    return await getRoomById(id);
+  };
+  
   // 채팅방 정보 및 메시지 로드
   useEffect(() => {
     if (!roomId) return;
+    
+    console.log('ChatRoom mounted with roomId:', roomId);
     
     const numericRoomId = parseInt(roomId);
     
@@ -48,93 +64,76 @@ const ChatRoom: React.FC = () => {
     // 채팅방 정보 로드
     const loadRoomData = async () => {
       try {
+        console.log('Loading room data for roomId:', numericRoomId);
+        
         // 사용자 채팅방 목록 로드
         await fetchUserRooms();
         
-        // 현재 채팅방 설정
-        const rooms = useRoomStore.getState().userRooms;
-        const room = rooms.find(r => r.id === numericRoomId);
+        // 현재 방 설정
+        const room = await fetchRoomById(numericRoomId);
+        console.log('Fetched room:', room);
         
-        if (room) {
-          setCurrentRoom(room);
-          
-          // 첫 페이지 메시지 로드
-          await fetchMessages(numericRoomId, 1, true);
-          
-          // 웹소켓 연결
-          connectWebSocket(numericRoomId);
-        } else {
-          // 참여하지 않은 채팅방인 경우
+        if (!room) {
+          console.error('Room not found');
           navigate('/chat');
+          return;
         }
-      } catch (error) {
-        console.error('Error loading room data:', error);
+        
+        setCurrentRoom(room);
+        
+        // 메시지 로드
+        console.log('Fetching messages for roomId:', numericRoomId);
+        await fetchMessages(numericRoomId);
+        
+        // 웹소켓 연결
+        console.log('Connecting WebSocket for roomId:', numericRoomId);
+        connectWebSocket(numericRoomId);
+      } catch (err) {
+        console.error('채팅방 데이터 로드 실패:', err);
+        navigate('/chat');
       }
     };
     
     loadRoomData();
     
-    // 컴포넌트 언마운트 시 웹소켓 연결 종료
+    // 컴포넌트 언마운트 시 웹소켓 연결 해제
     return () => {
+      console.log('ChatRoom unmounted, disconnecting WebSocket');
       disconnectWebSocket();
-      setCurrentRoom(null);
     };
   }, [roomId]);
   
-  // 이전 메시지 로드 핸들러
-  const handleLoadMoreMessages = useCallback(() => {
-    if (!roomId || !hasMore || isLoading) return;
+  // 채팅방 나가기
+  const handleLeaveRoom = async () => {
+    if (!roomId) return;
     
-    fetchMessages(parseInt(roomId), page + 1);
-  }, [roomId, hasMore, isLoading, page, fetchMessages]);
-  
-  // 메시지 전송 핸들러
-  const handleSendMessage = (content: string) => {
-    if (!roomId) return;
-    sendMessage(content, parseInt(roomId));
-  };
-  
-  // 채팅방 나가기 핸들러
-  const handleLeaveRoom = () => {
-    if (!roomId) return;
-    leaveRoom(parseInt(roomId)).then(() => {
+    try {
+      await leaveRoom(parseInt(roomId));
       navigate('/chat');
-    });
-  };
-  
-  // 연결 재시도 핸들러
-  const handleReconnect = () => {
-    if (!roomId) return;
-    clearError();
-    connectWebSocket(parseInt(roomId));
-  };
-  
-  // 웹소켓 연결 테스트
-  const handleTestConnection = () => {
-    if (!roomId) return;
-    
-    clearError();
-    console.log('Current connection status:', connectionStatus);
-    
-    if (connectionStatus === 'connected') {
-      const socket = useMessageStore.getState().socket;
-      if (socket) {
-        try {
-          socket.send(JSON.stringify({
-            type: 'ping',
-            payload: { timestamp: new Date().toISOString() }
-          }));
-          console.log('Ping message sent');
-        } catch (error) {
-          console.error('Error sending ping message:', error);
-        }
-      }
-    } else {
-      connectWebSocket(parseInt(roomId));
+    } catch (err) {
+      console.error('채팅방 나가기 실패:', err);
     }
   };
   
-  // 초기 로딩 효과 추가
+  // 메시지 전송 함수 변경
+  const handleSendMessage = useCallback((content: string) => {
+    if (!roomId) return;
+    sendMessage(content, parseInt(roomId)); // 문자열을 숫자로 변환
+  }, [roomId, sendMessage]);
+  
+  // 추가 메시지 로드 함수 변경
+  const handleLoadMoreMessages = useCallback(() => {
+    if (!roomId || !hasMore) return;
+    fetchMessages(parseInt(roomId), page + 1); // 문자열을 숫자로 변환
+  }, [roomId, page, hasMore, fetchMessages]);
+  
+  // 재연결 함수 변경
+  const handleReconnect = useCallback(() => {
+    if (!roomId) return;
+    connectWebSocket(parseInt(roomId)); // 문자열을 숫자로 변환
+  }, [roomId, connectWebSocket]);
+  
+  // 로딩 효과 추가
   useEffect(() => {
     // 메시지가 로드되면 스크롤을 맨 아래로 이동
     if (!isLoading && messages.length > 0) {
@@ -146,11 +145,7 @@ const ChatRoom: React.FC = () => {
   }, [isLoading]);
   
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      height: '100vh'
-    }}>
+    <div className="flex flex-col h-screen">
       {/* 채팅방 헤더 */}
       <RoomHeader
         room={currentRoom}
@@ -160,17 +155,8 @@ const ChatRoom: React.FC = () => {
       />
       
       {/* 메시지 목록 */}
-      <Box 
-        className="messages-container"
-        sx={{ 
-          flexGrow: 1, 
-          display: 'flex',
-          flexDirection: 'column',
-          p: 0, 
-          bgcolor: 'grey.100',
-          position: 'relative',
-          mb: 0
-        }}
+      <div 
+        className="messages-container flex-1 flex flex-col bg-background-secondary relative mb-0 overflow-hidden"
       >
         <MessageList
           messages={messages}
@@ -182,7 +168,7 @@ const ChatRoom: React.FC = () => {
           onLoadMore={handleLoadMoreMessages}
           hasMore={hasMore}
         />
-      </Box>
+      </div>
       
       {/* 메시지 입력 */}
       <MessageInput
@@ -191,7 +177,7 @@ const ChatRoom: React.FC = () => {
         disabledMessage="메시지를 보내려면 연결이 필요합니다."
         onReconnect={connectionStatus === 'disconnected' ? handleReconnect : undefined}
       />
-    </Box>
+    </div>
   );
 };
 

@@ -27,7 +27,7 @@ func NewHandler(db *gorm.DB, kafka kafka.KafkaInterface, authService *service.Au
 
 	roomHandler := NewRoomHandler(roomService)
 	messageHandler := NewMessageHandler(messageService)
-	webSocketHandler := NewWebSocketHandler(messageService, authService)
+	webSocketHandler := NewWebSocketHandler(messageService, authService, kafka.GetProducer(), kafka.GetConsumer())
 
 	return &Handler{
 		db:               db,
@@ -124,7 +124,7 @@ func (h *Handler) CreateMessage(c *gin.Context) {
 	}
 
 	// Kafka에 메시지 발행
-	if err := h.kafka.Publish(c.Request.Context(), "message", req.Content); err != nil {
+	if err := h.kafka.Produce("myapp-topic", []byte(req.Content)); err != nil {
 		appErr := errors.MapError(err)
 		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})
 		return

@@ -1,107 +1,98 @@
-import React, { useState } from 'react';
-import { TextField, Button, Box, Typography, Alert, Paper } from '@mui/material';
-import { useAuthStore } from '../../store/authStore';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useAuthStore } from '../../store/authStore';
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+
+const formSchema = z.object({
+  email: z.string().min(1, '이메일을 입력해주세요').email('유효한 이메일을 입력해주세요'),
+  password: z.string().min(1, '비밀번호를 입력해주세요'),
+});
 
 const LoginForm: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  
-  const { login, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
-  
-  const validateForm = () => {
-    let isValid = true;
-    
-    // 이메일 검증
-    if (!email) {
-      setEmailError('이메일을 입력해주세요.');
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('유효한 이메일 주소를 입력해주세요.');
-      isValid = false;
-    } else {
-      setEmailError('');
-    }
-    
-    // 비밀번호 검증
-    if (!password) {
-      setPasswordError('비밀번호를 입력해주세요.');
-      isValid = false;
-    } else {
-      setPasswordError('');
-    }
-    
-    return isValid;
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-    
-    const success = await login(email, password);
+  const { login, isLoading, error } = useAuthStore();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    const success = await login(values.email, values.password);
     if (success) {
       navigate('/chat');
     }
   };
-  
+
   return (
-    <Paper elevation={3} sx={{ p: 4, maxWidth: 500, width: '100%' }}>
-      <Typography variant="h5" component="h1" gutterBottom>
-        로그인
-      </Typography>
-      
+    <div className="space-y-6">
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
-      <Box component="form" onSubmit={handleSubmit} noValidate>
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          id="email"
-          label="이메일"
-          name="email"
-          autoComplete="email"
-          autoFocus
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          error={!!emailError}
-          helperText={emailError}
-        />
-        
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="password"
-          label="비밀번호"
-          type="password"
-          id="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          error={!!passwordError}
-          helperText={passwordError}
-        />
-        
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          disabled={isLoading}
-          sx={{ mt: 3, mb: 2 }}
-        >
-          {isLoading ? '로그인 중...' : '로그인'}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>이메일</FormLabel>
+                <FormControl>
+                  <Input placeholder="email@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>비밀번호</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="********" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "로그인 중..." : "로그인"}
+          </Button>
+        </form>
+      </Form>
+      
+      <div className="text-center text-sm">
+        <span className="text-muted-foreground">계정이 없으신가요? </span>
+        <Button variant="link" className="p-0" onClick={() => navigate('/register')}>
+          회원가입
         </Button>
-      </Box>
-    </Paper>
+      </div>
+    </div>
   );
 };
 

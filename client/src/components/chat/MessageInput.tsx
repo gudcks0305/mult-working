@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Paper } from '@mui/material';
-import { Send } from '@mui/icons-material';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -26,53 +27,45 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
   
   return (
-    <Box sx={{ 
-      p: 2, 
-      borderTop: 1, 
-      borderColor: 'divider',
-      bgcolor: 'background.paper',
-      position: 'relative',
-      zIndex: 20 // 다른 요소들보다 앞에 표시
-    }}>
-      <Paper 
-        component="form" 
+    <div className="p-2 border-t border-border bg-background relative z-20">
+      <form 
         onSubmit={handleSubmit}
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'center',
-        }}
-        elevation={3}
+        className="flex items-center gap-2 p-2 bg-card rounded-lg shadow-sm"
       >
-        <TextField
-          fullWidth
+        <Input
           placeholder="메시지를 입력하세요..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           disabled={disabled}
-          helperText={disabled && disabledMessage}
-          sx={{ mr: 2 }}
+          className="flex-1"
         />
+        
         <Button
-          variant="contained"
-          color="primary"
           type="submit"
+          variant="default"
+          size="sm"
           disabled={!message.trim() || disabled}
-          endIcon={<Send />}
         >
-          전송
+          <Send className="h-4 w-4 mr-1" /> 전송
         </Button>
+        
         {disabled && onReconnect && (
           <Button 
-            variant="outlined"
-            color="primary"
+            variant="outline"
+            size="sm"
             onClick={onReconnect}
-            sx={{ ml: 1 }}
           >
             재연결
           </Button>
         )}
-      </Paper>
-    </Box>
+      </form>
+      
+      {disabled && disabledMessage && (
+        <p className="text-sm text-muted-foreground mt-1 text-center">
+          {disabledMessage}
+        </p>
+      )}
+    </div>
   );
 };
 

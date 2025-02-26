@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -38,6 +39,8 @@ type AuthConfig struct {
 	SymmetricKey  string        `mapstructure:"symmetric_key"`
 	TokenDuration time.Duration `mapstructure:"token_duration"`
 }
+
+var ServerInstanceID = fmt.Sprintf("server-%s-%d", "MULTIPROCESS", time.Now().UnixNano())
 
 func LoadConfig() (*Config, error) {
 	viper.SetConfigName("config")

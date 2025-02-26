@@ -31,7 +31,7 @@ func (h *Handler) handleWebSocket(c *gin.Context) {
 		}
 
 		// Kafka로 메시지 전송
-		if err := h.kafka.Publish(c, "websocket", string(message)); err != nil {
+		if err := h.kafka.Produce("myapp-topic", message); err != nil {
 			log.Printf("Kafka 메시지 전송 실패: %v", err)
 			continue
 		}

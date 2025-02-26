@@ -2,9 +2,12 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"mult-working/internal/config"
 	"mult-working/internal/dto"
 	"mult-working/internal/service"
+	"mult-working/pkg/kafka"
 	"net/http"
 	"sync"
 	"time"
@@ -12,6 +15,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
+
+// Kafka 메시지 구조체
+type KafkaMessage struct {
+	Type    string          `json:"type"`
+	RoomID  uint            `json:"roomId"`
+	Payload json.RawMessage `json:"payload"`
+}
 
 // WebSocketHandler는 웹소켓 관련 핸들러입니다
 type WebSocketHandler struct {
@@ -21,15 +31,21 @@ type WebSocketHandler struct {
 	rooms          map[uint]map[*websocket.Conn]bool
 	mutex          sync.Mutex
 	upgrader       websocket.Upgrader
+	kafkaProducer  kafka.Producer
+	kafkaConsumer  kafka.Consumer
 }
 
 // NewWebSocketHandler는 새로운 WebSocketHandler 인스턴스를 생성합니다
-func NewWebSocketHandler(messageService *service.MessageService, authService *service.AuthService) *WebSocketHandler {
-	return &WebSocketHandler{
+func NewWebSocketHandler(messageService *service.MessageService, authService *service.AuthService, kafkaProducer kafka.Producer, kafkaConsumer kafka.Consumer) *WebSocketHandler {
+	// 서버 인스턴스 ID 생성 (UUID 또는 호스트명+프로세스ID 등으로 생성)
+
+	handler := &WebSocketHandler{
 		messageService: messageService,
 		authService:    authService,
 		clients:        make(map[uint]map[*websocket.Conn]bool),
 		rooms:          make(map[uint]map[*websocket.Conn]bool),
+		kafkaProducer:  kafkaProducer,
+		kafkaConsumer:  kafkaConsumer,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -39,6 +55,52 @@ func NewWebSocketHandler(messageService *service.MessageService, authService *se
 			},
 		},
 	}
+
+	// Kafka 컨슈머 설정 및 메시지 리스넝을 시작
+	handler.setupKafkaConsumer()
+
+	return handler
+}
+
+func (h *WebSocketHandler) setupKafkaConsumer() {
+
+	// Kafka 컨슈머 생성
+	consumer := h.kafkaConsumer
+	// 메시지 핸들러 등록
+	consumer.AddHandler(func(msg []byte) error {
+		// 메시지 파싱
+		var kafkaMsg KafkaMessage
+		if err := json.Unmarshal(msg, &kafkaMsg); err != nil {
+			log.Printf("Error parsing Kafka message: %v", err)
+			return err
+		}
+
+		// 발신 서버 ID가 현재 서버와 같으면 스킵 (이미 로컬에서 처리됨)
+		var metadata struct {
+			Payload json.RawMessage `json:"payload"`
+		}
+		var Message struct {
+			ServerID string `json:"serverId"`
+		}
+		if err := json.Unmarshal(kafkaMsg.Payload, &metadata); err == nil {
+			fmt.Println("metadata", string(kafkaMsg.Payload))
+			if metadata.Payload != nil {
+				if err := json.Unmarshal(metadata.Payload, &Message); err == nil {
+					fmt.Println("Message", Message.ServerID)
+					if Message.ServerID == config.ServerInstanceID {
+						return nil
+					}
+				}
+			}
+		}
+
+		// 클라이언트에게 메시지 전달
+		h.localBroadcastToRoom(kafkaMsg.RoomID, kafkaMsg.Payload)
+		return nil
+	})
+
+	// 컨슈머 시작
+	consumer.Start()
 }
 
 // HandleWebSocket은 웹소켓 연결을 처리합니다
@@ -122,6 +184,7 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 			Type    string          `json:"type"`
 			Payload json.RawMessage `json:"payload"`
 		}
+		fmt.Println(string(message))
 		if err := json.Unmarshal(message, &msg); err != nil {
 			log.Printf("Failed to parse message: %v", err)
 			continue
@@ -231,19 +294,59 @@ func (h *WebSocketHandler) handleSendMessage(conn *websocket.Conn, content strin
 
 // broadcastToRoom은 특정 채팅방의 모든 클라이언트에게 메시지를 전송합니다
 func (h *WebSocketHandler) broadcastToRoom(roomID uint, message interface{}) {
+	// 메시지를 JSON으로 직렬화
 	data, err := json.Marshal(message)
 	if err != nil {
 		log.Printf("Failed to marshal message: %v", err)
 		return
 	}
 
+	// 메시지에 서버 ID 메타데이터 추가
+	var msgMap map[string]interface{}
+	if err := json.Unmarshal(data, &msgMap); err == nil {
+		if payload, ok := msgMap["payload"].(map[string]interface{}); ok {
+			payload["serverId"] = config.ServerInstanceID
+			msgMap["payload"] = payload
+		}
+
+		// 업데이트된 메시지 다시 직렬화
+		if updatedData, err := json.Marshal(msgMap); err == nil {
+			data = updatedData
+		}
+	}
+
+	// Kafka 메시지 구조체 생성
+	kafkaMsg := KafkaMessage{
+		Type:    "message",
+		RoomID:  roomID,
+		Payload: data,
+	}
+
+	// Kafka에 메시지 발행
+	kafkaData, err := json.Marshal(kafkaMsg)
+	if err != nil {
+		log.Printf("Failed to marshal Kafka message: %v", err)
+		return
+	}
+
+	if err := h.kafkaProducer.Produce("myapp-topic", kafkaData); err != nil {
+		log.Printf("Failed to produce Kafka message: %v", err)
+		return
+	}
+
+	// 로컬 클라이언트에게도 바로 메시지 전송
+	h.localBroadcastToRoom(roomID, data)
+}
+
+// localBroadcastToRoom은 현재 서버의 로컬 클라이언트에게만 메시지를 전송합니다
+func (h *WebSocketHandler) localBroadcastToRoom(roomID uint, message json.RawMessage) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 
 	if clients, ok := h.rooms[roomID]; ok {
-		log.Printf("Broadcasting to room %d (%d clients): %s", roomID, len(clients), string(data))
+		log.Printf("Broadcasting to room %d (%d clients)", roomID, len(clients))
 		for client := range clients {
-			if err := client.WriteMessage(websocket.TextMessage, data); err != nil {
+			if err := client.WriteMessage(websocket.TextMessage, message); err != nil {
 				log.Printf("Failed to send message: %v", err)
 				client.Close()
 				delete(clients, client)

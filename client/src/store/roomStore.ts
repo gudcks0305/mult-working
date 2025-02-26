@@ -27,13 +27,16 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await api.get('/protected/rooms/me');
-      set({ userRooms: response.data, isLoading: false });
+      const rooms = response.data;
+      set({ userRooms: rooms, isLoading: false });
+      return rooms;
     } catch (error: any) {
       console.error('Error fetching user rooms:', error);
       set({ 
         isLoading: false, 
         error: error.response?.data?.error || '내 채팅방 목록을 불러오는데 실패했습니다.' 
       });
+      return [];
     }
   },
   
@@ -102,4 +105,20 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   },
   
   clearError: () => set({ error: null }),
+  
+  getRoomById: async (roomId: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.get(`/protected/rooms/${roomId}`);
+      if (response.status === 200) {
+        return response.data;
+      }
+      throw new Error('채팅방을 찾을 수 없습니다.');
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || '채팅방 정보를 가져오는데 실패했습니다.' });
+      return null;
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 })); 
