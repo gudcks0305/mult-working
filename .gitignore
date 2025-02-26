@@ -1,1 +1,50 @@
- 
+# 바이너리 파일
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# 로그 파일
+*.log
+
+# 환경 설정 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE 설정 파일
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 빌드 디렉토리
+/bin/
+/dist/
+
+# 의존성 디렉토리
+/vendor/
+
+# SQLite 데이터베이스 파일
+*.db
+*.sqlite
+*.sqlite3
+
+# 테스트 커버리지 파일
+coverage.out
+coverage.html
+
+# 임시 파일
+/tmp/
+
+# 로컬 설정 파일 (필요에 따라 주석 처리)
+# config/config.local.yml
+
+# Go 워크스페이스 파일
+go.work 
