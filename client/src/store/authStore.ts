@@ -47,12 +47,13 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true, 
             isLoading: false 
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Login error:', error);
           set({ 
             isLoading: false, 
             error: error.response?.data?.error || '로그인에 실패했습니다.' 
           });
+          return false;
         }
       },
       
@@ -61,7 +62,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await api.post('/auth/register', { username, email, password });
           set({ isLoading: false });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Register error:', error);
           set({ 
             isLoading: false, 
@@ -96,7 +97,7 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true, 
             isLoading: false 
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Fetch user error:', error);
           // 인증 오류인 경우 로그아웃 처리
           if (error.response?.status === 401) {

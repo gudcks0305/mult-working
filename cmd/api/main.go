@@ -60,7 +60,7 @@ func startServer(p HandlerParams) {
 			OnStart: func(ctx context.Context) error {
 				// 설정에 따라 데이터베이스 마이그레이션 실행
 				if p.Config.Database.AutoMigrate {
-					if err := database.AutoMigrate(p.DB); err != nil {
+					if err := database.DBAutoMigrate(p.DB); err != nil {
 						return err
 					}
 				}

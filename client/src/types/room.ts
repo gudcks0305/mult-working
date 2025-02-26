@@ -1,9 +1,11 @@
 export interface Room {
   id: number;
   name: string;
-  description: string;
+  description?: string;
+  userCount?: number;
   createdAt: string;
-  ownerId: number;
+  createdBy?: number;
+  ownerId?: number;
 }
 
 export interface RoomState {
@@ -15,9 +17,9 @@ export interface RoomState {
   
   fetchRooms: () => Promise<void>;
   fetchUserRooms: () => Promise<void>;
-  createRoom: (name: string, description: string) => Promise<void>;
-  joinRoom: (roomId: number) => Promise<void>;
-  leaveRoom: (roomId: number) => Promise<void>;
+  createRoom: (name: string, description?: string) => Promise<boolean>;
+  joinRoom: (roomId: number) => Promise<boolean>;
+  leaveRoom: (roomId: number) => Promise<boolean>;
   setCurrentRoom: (room: Room | null) => void;
   clearError: () => void;
 } 

@@ -1,15 +1,25 @@
 import React from 'react';
-import Button from '../common/Button';
-import ConnectionStatusIndicator from '../common/ConnectionStatus';
 import { Room } from '../../types/room';
 import { ConnectionStatus } from '../../types/message';
+import ConnectionStatusIndicator from '../common/ConnectionStatus';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  IconButton, 
+  Button, 
+  Box,
+  useTheme,
+  useMediaQuery 
+} from '@mui/material';
+import { ArrowBack, ExitToApp, Refresh } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 interface RoomHeaderProps {
   room: Room | null;
   connectionStatus: ConnectionStatus;
   onLeave: () => void;
   onReconnect: () => void;
-  onTestConnection: () => void;
 }
 
 const RoomHeader: React.FC<RoomHeaderProps> = ({
@@ -17,36 +27,71 @@ const RoomHeader: React.FC<RoomHeaderProps> = ({
   connectionStatus,
   onLeave,
   onReconnect,
-  onTestConnection
 }) => {
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const handleGoBack = () => {
+    navigate('/chat');
+  };
+  
+  const handleTestConnection = () => {
+    onReconnect();
+  };
+  
   return (
-    <div className="bg-white border-b p-4 flex justify-between items-center">
-      <div>
-        <h2 className="text-xl font-bold">{room?.name}</h2>
-        <p className="text-sm text-gray-500">{room?.description}</p>
-      </div>
-      <div className="flex items-center">
-        {/* 연결 상태 표시 */}
+    <AppBar position="static" color="default" elevation={1}>
+      <Toolbar>
+        <IconButton 
+          edge="start" 
+          color="inherit" 
+          aria-label="back"
+          onClick={handleGoBack}
+          sx={{ mr: 2 }}
+        >
+          <ArrowBack />
+        </IconButton>
+        
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" noWrap>
+            {room?.name || '로딩 중...'}
+          </Typography>
+          {!isMobile && room && (
+            <Typography variant="caption" color="textSecondary">
+              참여자: {room.userCount || 0}명
+            </Typography>
+          )}
+        </Box>
+        
         <ConnectionStatusIndicator 
           status={connectionStatus}
           onReconnect={onReconnect}
-          className="mr-4"
+          sx={{ mr: 2 }}
         />
+        
         <Button
-          variant="primary"
-          onClick={onTestConnection}
-          className="mr-2"
+          variant="contained"
+          color="primary"
+          onClick={handleTestConnection}
+          startIcon={<Refresh />}
+          size="small"
+          sx={{ mr: 1 }}
         >
           연결 테스트
         </Button>
+        
         <Button
-          variant="danger"
+          variant="contained"
+          color="error"
           onClick={onLeave}
+          startIcon={<ExitToApp />}
+          size="small"
         >
           나가기
         </Button>
-      </div>
-    </div>
+      </Toolbar>
+    </AppBar>
   );
 };
 

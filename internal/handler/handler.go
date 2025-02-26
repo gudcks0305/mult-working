@@ -50,7 +50,7 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 
 		// 보호된 라우트
 		protected := api.Group("/protected")
-		protected.Use(middleware.AuthMiddleware(h.authService))
+		protected.Use(middleware.JWTAuthMiddleware(h.authService))
 		{
 			protected.GET("/profile", h.GetProfile)
 

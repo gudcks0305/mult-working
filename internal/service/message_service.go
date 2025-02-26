@@ -1,6 +1,8 @@
 package service
 
 import (
+	errs "errors"
+	"fmt"
 	"mult-working/internal/dto"
 	"mult-working/internal/errors"
 	"mult-working/internal/models"
@@ -128,4 +130,49 @@ func (s *MessageService) GetRoomMessages(roomID, userID uint) ([]dto.MessageResp
 // GetDB는 서비스의 DB 인스턴스를 반환합니다
 func (s *MessageService) GetDB() *gorm.DB {
 	return s.db
+}
+
+// GetMessagesByRoomId는 채팅방 ID를 기준으로 메시지를 페이지네이션하여 조회합니다
+func (s *MessageService) GetMessagesByRoomId(id string, limit int, offset int, messages *[]struct {
+	ID        uint      `json:"id"`
+	Content   string    `json:"content"`
+	UserID    uint      `json:"userId"`
+	Username  string    `json:"username"`
+	RoomID    uint      `json:"roomId"`
+	CreatedAt time.Time `json:"createdAt"`
+}) error {
+	roomID, err := parseUint(id)
+	if err != nil {
+		return errs.New("invalid room ID")
+	}
+
+	// 채팅방 존재 여부 확인
+	var room models.Room
+	if err := s.db.First(&room, roomID).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return errors.ErrRoomNotFound
+		}
+		return errors.ErrDatabaseError
+	}
+
+	// 메시지 조회 (최신순으로 정렬) - 사용자 이름 포함
+	if err := s.db.Table("messages").
+		Select("messages.id, messages.content, messages.user_id, users.username, messages.room_id, messages.created_at").
+		Joins("LEFT JOIN users ON messages.user_id = users.id").
+		Where("messages.room_id = ?", roomID).
+		Order("messages.created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(messages).Error; err != nil {
+		return errors.ErrDatabaseError
+	}
+
+	return nil
+}
+
+// parseUint는 문자열을 uint로 변환합니다
+func parseUint(s string) (uint, error) {
+	var id uint
+	_, err := fmt.Sscanf(s, "%d", &id)
+	return id, err
 }

@@ -2,12 +2,12 @@ export interface Message {
   id: number;
   content: string;
   userId: number;
-  username: string;
   roomId: number;
+  username?: string;
   createdAt: string;
 }
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
+export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'reconnecting';
 
 export interface MessageState {
   messages: Message[];
@@ -16,9 +16,11 @@ export interface MessageState {
   socket: WebSocket | null;
   connectionStatus: ConnectionStatus;
   reconnectAttempts: number;
+  hasMore: boolean;
+  page: number;
   
-  fetchMessages: (roomId: number) => Promise<void>;
-  sendMessage: (content: string, roomId: number) => Promise<void>;
+  fetchMessages: (roomId: number, page?: number, reset?: boolean) => Promise<void>;
+  sendMessage: (content: string, roomId: number) => void;
   connectWebSocket: (roomId: number) => void;
   disconnectWebSocket: () => void;
   clearMessages: () => void;

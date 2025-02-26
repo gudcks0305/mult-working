@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoomStore } from '../store/roomStore';
 import { useMessageStore } from '../store/messageStore';
 import { useAuthStore } from '../store/authStore';
+import { Box } from '@mui/material';
 import RoomHeader from './chat/RoomHeader';
 import MessageList from './chat/MessageList';
 import MessageInput from './chat/MessageInput';
@@ -24,6 +25,8 @@ const ChatRoom: React.FC = () => {
     isLoading, 
     error, 
     connectionStatus,
+    hasMore,
+    page,
     fetchMessages, 
     sendMessage, 
     connectWebSocket, 
@@ -55,8 +58,8 @@ const ChatRoom: React.FC = () => {
         if (room) {
           setCurrentRoom(room);
           
-          // 메시지 로드
-          await fetchMessages(numericRoomId);
+          // 첫 페이지 메시지 로드
+          await fetchMessages(numericRoomId, 1, true);
           
           // 웹소켓 연결
           connectWebSocket(numericRoomId);
@@ -77,6 +80,13 @@ const ChatRoom: React.FC = () => {
       setCurrentRoom(null);
     };
   }, [roomId]);
+  
+  // 이전 메시지 로드 핸들러
+  const handleLoadMoreMessages = useCallback(() => {
+    if (!roomId || !hasMore || isLoading) return;
+    
+    fetchMessages(parseInt(roomId), page + 1);
+  }, [roomId, hasMore, isLoading, page, fetchMessages]);
   
   // 메시지 전송 핸들러
   const handleSendMessage = (content: string) => {
@@ -124,19 +134,44 @@ const ChatRoom: React.FC = () => {
     }
   };
   
+  // 초기 로딩 효과 추가
+  useEffect(() => {
+    // 메시지가 로드되면 스크롤을 맨 아래로 이동
+    if (!isLoading && messages.length > 0) {
+      const messagesContainer = document.querySelector('.messages-container');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
+  }, [isLoading]);
+  
   return (
-    <div className="flex flex-col h-full">
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100vh'
+    }}>
       {/* 채팅방 헤더 */}
       <RoomHeader
         room={currentRoom}
         connectionStatus={connectionStatus}
         onLeave={handleLeaveRoom}
         onReconnect={handleReconnect}
-        onTestConnection={handleTestConnection}
       />
       
       {/* 메시지 목록 */}
-      <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+      <Box 
+        className="messages-container"
+        sx={{ 
+          flexGrow: 1, 
+          display: 'flex',
+          flexDirection: 'column',
+          p: 0, 
+          bgcolor: 'grey.100',
+          position: 'relative',
+          mb: 0
+        }}
+      >
         <MessageList
           messages={messages}
           isLoading={isLoading}
@@ -144,8 +179,10 @@ const ChatRoom: React.FC = () => {
           currentUserId={user?.id}
           onReconnect={handleReconnect}
           connectionStatus={connectionStatus}
+          onLoadMore={handleLoadMoreMessages}
+          hasMore={hasMore}
         />
-      </div>
+      </Box>
       
       {/* 메시지 입력 */}
       <MessageInput
@@ -154,7 +191,7 @@ const ChatRoom: React.FC = () => {
         disabledMessage="메시지를 보내려면 연결이 필요합니다."
         onReconnect={connectionStatus === 'disconnected' ? handleReconnect : undefined}
       />
-    </div>
+    </Box>
   );
 };
 

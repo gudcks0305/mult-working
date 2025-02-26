@@ -6,6 +6,7 @@ import (
 	"mult-working/internal/service"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,15 +46,30 @@ func (h *MessageHandler) CreateMessage(c *gin.Context) {
 
 // GetRoomMessages는 특정 채팅방의 메시지 목록을 반환합니다
 func (h *MessageHandler) GetRoomMessages(c *gin.Context) {
-	userID, _ := c.Get("userID")
-	roomID, err := strconv.ParseUint(c.Param("roomId"), 10, 32)
-	if err != nil {
-		appErr := errors.MapError(errors.ErrInvalidRequest)
-		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})
-		return
+	roomId := c.Param("roomId")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
 	}
 
-	messages, err := h.messageService.GetRoomMessages(uint(roomID), userID.(uint))
+	offset := (page - 1) * limit
+
+	// 사용자 이름 포함하는 구조체
+	var messages []struct {
+		ID        uint      `json:"id"`
+		Content   string    `json:"content"`
+		UserID    uint      `json:"userId"`
+		Username  string    `json:"username"`
+		RoomID    uint      `json:"roomId"`
+		CreatedAt time.Time `json:"createdAt"`
+	}
+
+	err := h.messageService.GetMessagesByRoomId(roomId, limit, offset, &messages)
 	if err != nil {
 		appErr := errors.MapError(err)
 		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})

@@ -5,6 +5,9 @@ import { Message, ConnectionStatus, MessageState } from '../types/message';
 import { createWebSocketUrl, calculateReconnectDelay, shouldRetryConnection } from '../utils/websocket';
 import { WEBSOCKET_RECONNECT_MAX_ATTEMPTS } from '../constants';
 
+// 한 페이지당 메시지 수
+const PAGE_SIZE = 20;
+
 export const useMessageStore = create<MessageState>((set, get) => ({
   messages: [],
   isLoading: false,
@@ -12,18 +15,46 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   socket: null,
   connectionStatus: 'disconnected',
   reconnectAttempts: 0,
+  hasMore: true,
+  page: 1,
   
-  fetchMessages: async (roomId) => {
-    set({ isLoading: true, error: null });
+  fetchMessages: async (roomId, page = 1, reset = false) => {
+    if (page === 1 || reset) {
+      set({ isLoading: true });
+    }
+    
+    set({ error: null });
+    
     try {
-      const response = await api.get(`/protected/messages/room/${roomId}`);
-      // 메시지를 시간순으로 정렬 (오래된 메시지가 위에 오도록)
-      const sortedMessages = response.data.sort((a: Message, b: Message) => 
+      const response = await api.get(`/protected/messages/room/${roomId}`, {
+        params: { page, limit: PAGE_SIZE }
+      });
+      
+      const newMessages = response.data.messages || response.data;
+      
+      // 정렬: 오래된 메시지가 위에 오도록
+      const sortedMessages = newMessages.sort((a: Message, b: Message) => 
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
-      set({ messages: sortedMessages, isLoading: false });
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+      
+      // 첫 페이지이거나 리셋인 경우 메시지 배열 교체, 아니면 이전 메시지에 추가
+      if (page === 1 || reset) {
+        set({ 
+          messages: sortedMessages,
+          isLoading: false,
+          hasMore: sortedMessages.length === PAGE_SIZE,
+          page: 1
+        });
+      } else {
+        set(state => ({ 
+          messages: [...sortedMessages, ...state.messages],
+          isLoading: false,
+          hasMore: sortedMessages.length === PAGE_SIZE,
+          page
+        }));
+      }
+    } catch (error: any) {
+      console.error('Fetch messages error:', error);
       set({ 
         isLoading: false, 
         error: error.response?.data?.error || '메시지를 불러오는데 실패했습니다.' 
@@ -165,7 +196,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
     }
   },
   
-  clearMessages: () => set({ messages: [] }),
+  clearMessages: () => set({ messages: [], hasMore: true, page: 1 }),
   
   clearError: () => set({ error: null }),
 })); 

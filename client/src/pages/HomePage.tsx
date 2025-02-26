@@ -1,69 +1,117 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { Container, Typography, Box, Button, Paper, Grid } from '@mui/material';
+import { Chat as ChatIcon, Person as PersonIcon } from '@mui/icons-material';
 
 const HomePage: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-3xl mx-auto text-center">
-        <h1 className="text-4xl font-bold mb-6">실시간 채팅 애플리케이션</h1>
-        <p className="text-xl text-gray-600 mb-8">
-          친구들과 실시간으로 대화하고 새로운 사람들을 만나보세요.
-          다양한 주제의 채팅방에 참여하거나 나만의 채팅방을 만들 수 있습니다.
-        </p>
+    <Container maxWidth="md" sx={{ py: 8 }}>
+      <Box sx={{ textAlign: 'center', mb: 6 }}>
+        <Typography variant="h3" component="h1" gutterBottom>
+          실시간 채팅 애플리케이션
+        </Typography>
+        <Typography variant="h5" color="textSecondary" paragraph>
+          친구들과 채팅하고, 새로운 사람들과 대화하세요.
+        </Typography>
+      </Box>
+
+      <Grid container spacing={4}>
+        <Grid item xs={12} md={6}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 4, 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}
+          >
+            <ChatIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h5" component="h2" gutterBottom>
+              실시간 채팅
+            </Typography>
+            <Typography variant="body1" paragraph sx={{ mb: 3 }}>
+              빠르고 안전한 실시간 채팅으로 언제 어디서나 대화를 나눌 수 있습니다.
+            </Typography>
+            <Box sx={{ mt: 'auto' }}>
+              {isAuthenticated ? (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component={Link}
+                  to="/chat"
+                  size="large"
+                  startIcon={<ChatIcon />}
+                >
+                  채팅방으로 이동
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  component={Link}
+                  to="/login"
+                  size="large"
+                >
+                  시작하기
+                </Button>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
         
-        {isAuthenticated ? (
-          <div className="space-y-4">
-            <Link
-              to="/chat"
-              className="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600"
-            >
-              채팅방 둘러보기
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <Link
-              to="/login"
-              className="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 mr-4"
-            >
-              로그인
-            </Link>
-            <Link
-              to="/register"
-              className="inline-block bg-gray-200 text-gray-800 px-6 py-3 rounded-lg text-lg font-semibold hover:bg-gray-300"
-            >
-              회원가입
-            </Link>
-          </div>
-        )}
-      </div>
-      
-      <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">실시간 채팅</h2>
-          <p className="text-gray-600">
-            웹소켓을 이용한 실시간 채팅으로 지연 없이 대화를 나눌 수 있습니다.
-          </p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">다양한 채팅방</h2>
-          <p className="text-gray-600">
-            관심사에 맞는 채팅방에 참여하거나 직접 채팅방을 만들어 대화를 시작하세요.
-          </p>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-bold mb-4">안전한 인증</h2>
-          <p className="text-gray-600">
-            JWT 기반의 안전한 인증 시스템으로 개인정보를 보호합니다.
-          </p>
-        </div>
-      </div>
-    </div>
+        <Grid item xs={12} md={6}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 4, 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center'
+            }}
+          >
+            <PersonIcon sx={{ fontSize: 60, color: 'secondary.main', mb: 2 }} />
+            <Typography variant="h5" component="h2" gutterBottom>
+              계정 관리
+            </Typography>
+            <Typography variant="body1" paragraph sx={{ mb: 3 }}>
+              개인 프로필을 관리하고 채팅 설정을 맞춤화하세요.
+            </Typography>
+            <Box sx={{ mt: 'auto' }}>
+              {isAuthenticated ? (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  component={Link}
+                  to="/profile"
+                  size="large"
+                  startIcon={<PersonIcon />}
+                >
+                  프로필로 이동
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  component={Link}
+                  to="/register"
+                  size="large"
+                >
+                  계정 만들기
+                </Button>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

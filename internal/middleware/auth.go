@@ -8,7 +8,7 @@ import (
 )
 
 // AuthMiddleware는 인증이 필요한 라우트를 보호하는 미들웨어입니다
-func AuthMiddleware(authService *service.AuthService) gin.HandlerFunc {
+func JWTAuthMiddleware(authService *service.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if token == "" {

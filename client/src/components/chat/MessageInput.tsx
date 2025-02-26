@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Button from '../common/Button';
+import { Box, TextField, Button, Paper } from '@mui/material';
+import { Send } from '@mui/icons-material';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
-  placeholderText?: string;
   disabledMessage?: string;
   onReconnect?: () => void;
 }
@@ -12,54 +12,67 @@ interface MessageInputProps {
 const MessageInput: React.FC<MessageInputProps> = ({
   onSend,
   disabled = false,
-  placeholderText = '메시지를 입력하세요...',
-  disabledMessage = '메시지를 보내려면 연결이 필요합니다.',
-  onReconnect
+  disabledMessage = '',
+  onReconnect,
 }) => {
   const [message, setMessage] = useState('');
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim()) return;
-    
-    onSend(message);
-    setMessage('');
+    if (message.trim() && !disabled) {
+      onSend(message.trim());
+      setMessage('');
+    }
   };
   
   return (
-    <form onSubmit={handleSubmit} className="bg-white border-t p-4">
-      <div className="flex">
-        <input
-          type="text"
+    <Box sx={{ 
+      p: 2, 
+      borderTop: 1, 
+      borderColor: 'divider',
+      bgcolor: 'background.paper',
+      position: 'relative',
+      zIndex: 20 // 다른 요소들보다 앞에 표시
+    }}>
+      <Paper 
+        component="form" 
+        onSubmit={handleSubmit}
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center',
+        }}
+        elevation={3}
+      >
+        <TextField
+          fullWidth
+          placeholder="메시지를 입력하세요..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder={placeholderText}
-          className="flex-1 border rounded-l-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={disabled}
+          helperText={disabled && disabledMessage}
+          sx={{ mr: 2 }}
         />
         <Button
+          variant="contained"
+          color="primary"
           type="submit"
-          disabled={disabled}
-          className="rounded-l-none rounded-r-lg"
+          disabled={!message.trim() || disabled}
+          endIcon={<Send />}
         >
           전송
         </Button>
-      </div>
-      
-      {disabled && (
-        <p className="text-sm text-red-500 mt-2">
-          {disabledMessage}
-          {onReconnect && (
-            <button 
-              onClick={onReconnect}
-              className="ml-2 text-blue-500 hover:underline"
-            >
-              재연결
-            </button>
-          )}
-        </p>
-      )}
-    </form>
+        {disabled && onReconnect && (
+          <Button 
+            variant="outlined"
+            color="primary"
+            onClick={onReconnect}
+            sx={{ ml: 1 }}
+          >
+            재연결
+          </Button>
+        )}
+      </Paper>
+    </Box>
   );
 };
 

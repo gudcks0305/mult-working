@@ -1,30 +1,6 @@
 import { create } from 'zustand';
 import api from '../utils/axios';
-
-export interface Room {
-  id: number;
-  name: string;
-  description: string;
-  createdBy: number;
-  createdAt: string;
-  userCount: number;
-}
-
-interface RoomState {
-  rooms: Room[];
-  userRooms: Room[];
-  currentRoom: Room | null;
-  isLoading: boolean;
-  error: string | null;
-  
-  fetchRooms: () => Promise<void>;
-  fetchUserRooms: () => Promise<void>;
-  createRoom: (name: string, description: string) => Promise<void>;
-  joinRoom: (roomId: number) => Promise<void>;
-  leaveRoom: (roomId: number) => Promise<void>;
-  setCurrentRoom: (room: Room | null) => void;
-  clearError: () => void;
-}
+import { Room, RoomState } from '../types/room';
 
 export const useRoomStore = create<RoomState>((set, get) => ({
   rooms: [],
@@ -38,11 +14,11 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     try {
       const response = await api.get('/protected/rooms');
       set({ rooms: response.data, isLoading: false });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching rooms:', error);
       set({ 
         isLoading: false, 
-        error: error.response?.data?.error || 'Failed to fetch rooms' 
+        error: error.response?.data?.error || '방 목록을 불러오는데 실패했습니다.' 
       });
     }
   },
@@ -52,16 +28,16 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     try {
       const response = await api.get('/protected/rooms/me');
       set({ userRooms: response.data, isLoading: false });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user rooms:', error);
       set({ 
         isLoading: false, 
-        error: error.response?.data?.error || 'Failed to fetch your rooms' 
+        error: error.response?.data?.error || '내 채팅방 목록을 불러오는데 실패했습니다.' 
       });
     }
   },
   
-  createRoom: async (name, description) => {
+  createRoom: async (name, description = '') => {
     set({ isLoading: true, error: null });
     try {
       await api.post('/protected/rooms', { name, description });
@@ -69,12 +45,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       await get().fetchRooms();
       await get().fetchUserRooms();
       set({ isLoading: false });
-    } catch (error) {
+      return true;
+    } catch (error: any) {
       console.error('Error creating room:', error);
       set({ 
         isLoading: false, 
-        error: error.response?.data?.error || 'Failed to create room' 
+        error: error.response?.data?.error || '채팅방 생성에 실패했습니다.' 
       });
+      return false;
     }
   },
   
@@ -85,12 +63,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       // 사용자 방 목록 새로고침
       await get().fetchUserRooms();
       set({ isLoading: false });
-    } catch (error) {
+      return true;
+    } catch (error: any) {
       console.error('Error joining room:', error);
       set({ 
         isLoading: false, 
-        error: error.response?.data?.error || 'Failed to join room' 
+        error: error.response?.data?.error || '채팅방 참여에 실패했습니다.' 
       });
+      return false;
     }
   },
   
@@ -106,12 +86,14 @@ export const useRoomStore = create<RoomState>((set, get) => ({
         set({ currentRoom: null });
       }
       set({ isLoading: false });
-    } catch (error) {
+      return true;
+    } catch (error: any) {
       console.error('Error leaving room:', error);
       set({ 
         isLoading: false, 
-        error: error.response?.data?.error || 'Failed to leave room' 
+        error: error.response?.data?.error || '채팅방 나가기에 실패했습니다.' 
       });
+      return false;
     }
   },
   

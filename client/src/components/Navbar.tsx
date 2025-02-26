@@ -1,59 +1,185 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Button, 
+  IconButton, 
+  Box, 
+  Menu, 
+  MenuItem, 
+  Avatar,
+  Container,
+  useMediaQuery,
+  useTheme
+} from '@mui/material';
+import { Menu as MenuIcon, AccountCircle, Chat, Home } from '@mui/icons-material';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
-
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+  
   const handleLogout = () => {
+    handleMenuClose();
     logout();
-    navigate('/login');
+    navigate('/');
+  };
+  
+  const handleProfileClick = () => {
+    handleMenuClose();
+    navigate('/profile');
   };
 
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Link to="/" className="text-xl font-bold text-gray-800">
-              채팅 앱
-            </Link>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
+    <AppBar position="static">
+      <Container maxWidth="lg">
+        <Toolbar disableGutters>
+          <Typography
+            variant="h6"
+            component={Link}
+            to="/"
+            sx={{ 
+              mr: 2, 
+              display: 'flex', 
+              fontWeight: 700,
+              color: 'inherit',
+              textDecoration: 'none'
+            }}
+          >
+            채팅 앱
+          </Typography>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {isMobile ? (
               <>
-                <Link to="/chat" className="text-gray-600 hover:text-gray-900">
-                  채팅방
-                </Link>
-                <span className="text-gray-600">
-                  {user?.username}님 환영합니다
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                <IconButton
+                  size="large"
+                  edge="start"
+                  color="inherit"
+                  aria-label="menu"
+                  onClick={handleMenuOpen}
                 >
-                  로그아웃
-                </button>
+                  <MenuIcon />
+                </IconButton>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={Boolean(anchorEl)}
+                  onClose={handleMenuClose}
+                >
+                  <MenuItem component={Link} to="/" onClick={handleMenuClose}>
+                    홈
+                  </MenuItem>
+                  
+                  {isAuthenticated ? (
+                    <>
+                      <MenuItem component={Link} to="/chat" onClick={handleMenuClose}>
+                        채팅
+                      </MenuItem>
+                      <MenuItem onClick={handleProfileClick}>프로필</MenuItem>
+                      <MenuItem onClick={handleLogout}>로그아웃</MenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <MenuItem component={Link} to="/login" onClick={handleMenuClose}>
+                        로그인
+                      </MenuItem>
+                      <MenuItem component={Link} to="/register" onClick={handleMenuClose}>
+                        회원가입
+                      </MenuItem>
+                    </>
+                  )}
+                </Menu>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-600 hover:text-gray-900">
-                  로그인
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                <Button 
+                  color="inherit" 
+                  component={Link} 
+                  to="/"
+                  startIcon={<Home />}
+                  sx={{ mr: 1 }}
                 >
-                  회원가입
-                </Link>
+                  홈
+                </Button>
+                
+                {isAuthenticated ? (
+                  <>
+                    <Button 
+                      color="inherit" 
+                      component={Link} 
+                      to="/chat"
+                      startIcon={<Chat />}
+                      sx={{ mr: 1 }}
+                    >
+                      채팅
+                    </Button>
+                    
+                    <Box sx={{ ml: 1 }}>
+                      <IconButton
+                        size="large"
+                        edge="end"
+                        color="inherit"
+                        onClick={handleMenuOpen}
+                      >
+                        {user?.username ? (
+                          <Avatar sx={{ width: 32, height: 32 }}>
+                            {user.username.charAt(0).toUpperCase()}
+                          </Avatar>
+                        ) : (
+                          <AccountCircle />
+                        )}
+                      </IconButton>
+                      <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={handleMenuClose}
+                      >
+                        <MenuItem onClick={handleProfileClick}>프로필</MenuItem>
+                        <MenuItem onClick={handleLogout}>로그아웃</MenuItem>
+                      </Menu>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      color="inherit" 
+                      component={Link} 
+                      to="/login"
+                      sx={{ mr: 1 }}
+                    >
+                      로그인
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      color="inherit" 
+                      component={Link} 
+                      to="/register"
+                    >
+                      회원가입
+                    </Button>
+                  </>
+                )}
               </>
             )}
-          </div>
-        </div>
-      </div>
-    </nav>
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 };
 

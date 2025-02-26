@@ -1,36 +1,51 @@
 import React from 'react';
+import { Avatar } from '@mui/material';
 
 interface UserAvatarProps {
   username: string;
-  size?: 'sm' | 'md' | 'lg';
-  className?: string;
+  size?: 'small' | 'medium' | 'large';
+  sx?: object;
 }
 
 const UserAvatar: React.FC<UserAvatarProps> = ({
   username,
-  size = 'md',
-  className = '',
+  size = 'medium',
+  sx = {},
 }) => {
   // 크기에 따른 스타일 매핑
   const sizeStyles = {
-    sm: 'w-8 h-8 text-sm',
-    md: 'w-10 h-10 text-base',
-    lg: 'w-12 h-12 text-lg',
+    small: { width: 32, height: 32 },
+    medium: { width: 40, height: 40 },
+    large: { width: 48, height: 48 },
   };
-
+  
   // 사용자 이름의 첫 글자 추출
   const initial = username ? username.charAt(0).toUpperCase() : '?';
+  
+  // 이름에 따라 일관된 색상 생성
+  const stringToColor = (string: string) => {
+    let hash = 0;
+    for (let i = 0; i < string.length; i++) {
+      hash = string.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+      const value = (hash >> (i * 8)) & 0xff;
+      color += `00${value.toString(16)}`.slice(-2);
+    }
+    return color;
+  };
 
   return (
-    <div
-      className={`
-        rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-bold
-        ${sizeStyles[size]}
-        ${className}
-      `}
+    <Avatar
+      sx={{
+        ...sizeStyles[size],
+        bgcolor: stringToColor(username),
+        ...sx
+      }}
     >
       {initial}
-    </div>
+    </Avatar>
   );
 };
 
