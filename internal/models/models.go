@@ -12,9 +12,3 @@ type Message struct {
 	UserID    uint      `json:"user_id"`
 	Timestamp time.Time `json:"timestamp"`
 }
-
-type User struct {
-	gorm.Model
-	Username string    `json:"username"`
-	Messages []Message `json:"messages"`
-}

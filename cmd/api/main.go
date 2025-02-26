@@ -4,6 +4,7 @@ import (
 	"context"
 	"mult-working/internal/config"
 	"mult-working/internal/handler"
+	"mult-working/internal/service"
 	"mult-working/pkg/database"
 	"mult-working/pkg/kafka"
 
@@ -20,6 +21,7 @@ func main() {
 			database.NewDatabase,
 			kafka.NewClient,
 			newGinEngine,
+			service.NewAuthService,
 			handler.NewHandler,
 		),
 		// 애플리케이션 시작
@@ -31,6 +33,10 @@ func main() {
 
 func newGinEngine() *gin.Engine {
 	return gin.Default()
+}
+
+func newAuthService(cfg *config.Config, db *gorm.DB) *service.AuthService {
+	return service.NewAuthService(db, []byte(cfg.Auth.SymmetricKey), cfg.Auth.TokenDuration)
 }
 
 type HandlerParams struct {

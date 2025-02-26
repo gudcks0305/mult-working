@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/spf13/viper"
 )
 
@@ -8,6 +10,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Kafka    KafkaConfig
+	Auth     AuthConfig
 }
 
 type ServerConfig struct {
@@ -29,6 +32,11 @@ type DatabaseConfig struct {
 type KafkaConfig struct {
 	Brokers []string
 	Topic   string
+}
+
+type AuthConfig struct {
+	SymmetricKey  string        `mapstructure:"symmetric_key"`
+	TokenDuration time.Duration `mapstructure:"token_duration"`
 }
 
 func LoadConfig() (*Config, error) {
