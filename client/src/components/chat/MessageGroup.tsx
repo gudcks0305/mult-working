@@ -1,7 +1,7 @@
+import { Separator } from "@/components/ui/separator";
 import React from 'react';
 import { Message as MessageType } from '../../types/message';
 import Message from './Message';
-import { Separator } from "@/components/ui/separator";
 
 interface MessageGroupProps {
   userId: number;
@@ -9,6 +9,7 @@ interface MessageGroupProps {
   messages: MessageType[];
   isCurrentUser: boolean;
 }
+
 
 const MessageGroup: React.FC<MessageGroupProps> = ({
   userId,
