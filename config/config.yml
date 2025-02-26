@@ -14,9 +14,9 @@ database:
 
 kafka:
   brokers:
-    - kafka:29092  # 내부 통신용 포트 사용
+    - localhost:9092  # 내부 통신용 포트 사용
   topic: myapp-topic 
 
 auth:
-  symmetric_key: "your-32-byte-key-goes-here-12345678"
+  symmetric_key: "your-32-byte-secret-key-here-12345678"  # 32바이트 키
   token_duration: 24h 

@@ -7,43 +7,59 @@ import (
 	"time"
 
 	"github.com/o1egl/paseto"
-	"golang.org/x/crypto/ed25519"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
+// AuthService는 인증 관련 기능을 제공합니다
 type AuthService struct {
 	db            *gorm.DB
 	symmetricKey  []byte
-	publicKey     ed25519.PublicKey
-	privateKey    ed25519.PrivateKey
 	tokenDuration time.Duration
+	paseto        *paseto.V2
 }
 
+// NewAuthService는 새로운 AuthService 인스턴스를 생성합니다
 func NewAuthService(db *gorm.DB, symmetricKey []byte, tokenDuration time.Duration) *AuthService {
-	publicKey, privateKey, _ := ed25519.GenerateKey(nil)
+	// 키 길이 확인 및 조정 (chacha20poly1305는 32바이트 키 필요)
+	if len(symmetricKey) != 32 {
+		// 키가 32바이트가 아닌 경우 조정
+		newKey := make([]byte, 32)
+		copy(newKey, symmetricKey)
+		// 키가 짧으면 0으로 채우고, 길면 자름
+		symmetricKey = newKey
+	}
+
 	return &AuthService{
 		db:            db,
 		symmetricKey:  symmetricKey,
-		publicKey:     publicKey,
-		privateKey:    privateKey,
 		tokenDuration: tokenDuration,
+		paseto:        paseto.NewV2(),
 	}
 }
 
 // Register는 새 사용자를 등록합니다
 func (s *AuthService) Register(req dto.RegisterRequest) error {
-	var existingUser models.User
-	if result := s.db.Where("username = ? OR email = ?", req.Username, req.Email).First(&existingUser); result.Error == nil {
+	// 사용자 존재 여부 확인
+	var count int64
+	if err := s.db.Model(&models.User{}).Where("username = ? OR email = ?", req.Username, req.Email).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
 		return errors.ErrUserExists
 	}
 
-	user := models.User{
-		Username: req.Username,
-		Email:    req.Email,
+	// 비밀번호 해싱
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
 	}
 
-	if err := user.SetPassword(req.Password); err != nil {
-		return err
+	// 사용자 생성
+	user := models.User{
+		Username:     req.Username,
+		Email:        req.Email,
+		PasswordHash: string(hashedPassword),
 	}
 
 	return s.db.Create(&user).Error
@@ -68,13 +84,7 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.TokenResponse, error) {
 	expiration := now.Add(s.tokenDuration)
 
 	// v2.local 토큰 (대칭 암호화)
-	pasetoV2 := paseto.NewV2()
-	token, err := pasetoV2.Encrypt(s.symmetricKey, map[string]interface{}{
-		"user_id":  user.ID,
-		"username": user.Username,
-		"exp":      expiration.Unix(),
-	}, nil)
-
+	token, err := s.GenerateToken(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,23 +95,44 @@ func (s *AuthService) Login(req dto.LoginRequest) (*dto.TokenResponse, error) {
 	}, nil
 }
 
+// GenerateToken은 사용자 ID로 JWT 토큰을 생성합니다
+func (s *AuthService) GenerateToken(userID uint) (string, error) {
+	now := time.Now()
+	exp := now.Add(s.tokenDuration)
+
+	// 토큰 페이로드
+	payload := map[string]interface{}{
+		"user_id":    userID,
+		"issued_at":  now.Unix(),
+		"expires_at": exp.Unix(),
+	}
+
+	// 토큰 생성
+	token, err := s.paseto.Encrypt(s.symmetricKey, payload, nil)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
 // VerifyToken은 PASETO 토큰을 검증하고 사용자 ID를 반환합니다
 func (s *AuthService) VerifyToken(token string) (uint, error) {
 	var payload map[string]interface{}
-	pasetoV2 := paseto.NewV2()
 
-	err := pasetoV2.Decrypt(token, s.symmetricKey, &payload, nil)
+	// 토큰 검증
+	err := s.paseto.Decrypt(token, s.symmetricKey, &payload, nil)
 	if err != nil {
 		return 0, errors.ErrInvalidToken
 	}
 
 	// 만료 시간 확인
-	exp, ok := payload["exp"].(float64)
+	expiresAt, ok := payload["expires_at"].(float64)
 	if !ok {
 		return 0, errors.ErrInvalidToken
 	}
 
-	if time.Now().Unix() > int64(exp) {
+	if time.Now().Unix() > int64(expiresAt) {
 		return 0, errors.ErrTokenExpired
 	}
 

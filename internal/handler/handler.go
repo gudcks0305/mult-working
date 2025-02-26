@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"mult-working/internal/errors"
 	"mult-working/internal/middleware"
 	"mult-working/internal/service"
 	"mult-working/pkg/kafka"
@@ -10,16 +11,33 @@ import (
 )
 
 type Handler struct {
-	db          *gorm.DB
-	kafka       kafka.KafkaInterface
-	authService *service.AuthService
+	db               *gorm.DB
+	kafka            kafka.KafkaInterface
+	authService      *service.AuthService
+	roomService      *service.RoomService
+	messageService   *service.MessageService
+	roomHandler      *RoomHandler
+	messageHandler   *MessageHandler
+	webSocketHandler *WebSocketHandler
 }
 
 func NewHandler(db *gorm.DB, kafka kafka.KafkaInterface, authService *service.AuthService) *Handler {
+	roomService := service.NewRoomService(db)
+	messageService := service.NewMessageService(db)
+
+	roomHandler := NewRoomHandler(roomService)
+	messageHandler := NewMessageHandler(messageService)
+	webSocketHandler := NewWebSocketHandler(messageService, authService)
+
 	return &Handler{
-		db:          db,
-		kafka:       kafka,
-		authService: authService,
+		db:               db,
+		kafka:            kafka,
+		authService:      authService,
+		roomService:      roomService,
+		messageService:   messageService,
+		roomHandler:      roomHandler,
+		messageHandler:   messageHandler,
+		webSocketHandler: webSocketHandler,
 	}
 }
 
@@ -29,15 +47,35 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 	{
 		// 공개 라우트
 		h.registerAuthRoutes(api)
-		api.GET("/ws", h.handleWebSocket)
 
 		// 보호된 라우트
 		protected := api.Group("/protected")
 		protected.Use(middleware.AuthMiddleware(h.authService))
 		{
 			protected.GET("/profile", h.GetProfile)
-			protected.POST("/messages", h.CreateMessage)
+
+			// 채팅방 라우트
+			rooms := protected.Group("/rooms")
+			{
+				rooms.GET("", h.roomHandler.GetRooms)
+				rooms.POST("", h.roomHandler.CreateRoom)
+				rooms.GET("/:id", h.roomHandler.GetRoom)
+				rooms.POST("/join", h.roomHandler.JoinRoom)
+				rooms.DELETE("/:id/leave", h.roomHandler.LeaveRoom)
+				rooms.GET("/me", h.roomHandler.GetUserRooms)
+			}
+
+			// 메시지 라우트
+			messages := protected.Group("/messages")
+			{
+				messages.POST("", h.messageHandler.CreateMessage)
+				messages.GET("/room/:roomId", h.messageHandler.GetRoomMessages)
+			}
+
+			// 웹소켓 라우트
 		}
+		api.GET("/ws", h.webSocketHandler.HandleWebSocket)
+
 	}
 }
 
@@ -52,7 +90,8 @@ func (h *Handler) GetProfile(c *gin.Context) {
 	}
 
 	if err := h.db.Table("users").Select("id, username, email").Where("id = ?", userID).First(&user).Error; err != nil {
-		c.JSON(500, gin.H{"error": "Failed to fetch user profile"})
+		appErr := errors.MapError(errors.ErrUserNotFound)
+		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})
 		return
 	}
 
@@ -68,7 +107,8 @@ func (h *Handler) CreateMessage(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		appErr := errors.MapError(err)
+		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})
 		return
 	}
 
@@ -78,13 +118,15 @@ func (h *Handler) CreateMessage(c *gin.Context) {
 	}
 
 	if err := h.db.Table("messages").Create(message).Error; err != nil {
-		c.JSON(500, gin.H{"error": "Failed to create message"})
+		appErr := errors.MapError(err)
+		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})
 		return
 	}
 
 	// Kafka에 메시지 발행
 	if err := h.kafka.Publish(c.Request.Context(), "message", req.Content); err != nil {
-		c.JSON(500, gin.H{"error": "Failed to publish message to Kafka"})
+		appErr := errors.MapError(err)
+		c.JSON(appErr.StatusCode, gin.H{"error": appErr.Message})
 		return
 	}
 

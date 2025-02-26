@@ -4,6 +4,7 @@ import (
 	"context"
 	"mult-working/internal/config"
 	"mult-working/internal/handler"
+	"mult-working/internal/middleware"
 	"mult-working/internal/service"
 	"mult-working/pkg/database"
 	"mult-working/pkg/kafka"
@@ -21,7 +22,7 @@ func main() {
 			database.NewDatabase,
 			kafka.NewClient,
 			newGinEngine,
-			service.NewAuthService,
+			newAuthService,
 			handler.NewHandler,
 		),
 		// 애플리케이션 시작
@@ -32,7 +33,10 @@ func main() {
 }
 
 func newGinEngine() *gin.Engine {
-	return gin.Default()
+	r := gin.Default()
+	// CORS 미들웨어 설정 추가
+	r.Use(middleware.SetupCORS())
+	return r
 }
 
 func newAuthService(cfg *config.Config, db *gorm.DB) *service.AuthService {
@@ -63,8 +67,15 @@ func startServer(p HandlerParams) {
 
 				// 라우트 설정
 				p.Handler.SetupRoutes(p.Router)
+				// 정적 파일 제공 (프로덕션 환경에서 클라이언트 앱 서빙)
+				/*p.Router.Static("/assets", "./client/dist/assets")
+				p.Router.StaticFile("/", "./client/dist/index.html")
 
-				// 서버 시작
+				// 모든 경로를 SPA로 리다이렉트 (클라이언트 라우팅 지원)
+				p.Router.NoRoute(func(c *gin.Context) {
+					c.File("./client/dist/index.html")
+				})*/
+
 				go p.Router.Run(":" + p.Config.Server.Port)
 				return nil
 			},
