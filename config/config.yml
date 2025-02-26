@@ -1,0 +1,18 @@
+server:
+  port: 8080
+  mode: debug
+
+database:
+  driver: postgres  # or sqlite
+  host: localhost
+  port: 5432
+  username: postgres
+  password: password
+  dbname: myapp
+  sslmode: disable
+  auto_migrate: true  # 마이그레이션 활성화/비활성화 설정
+
+kafka:
+  brokers:
+    - localhost:9092
+  topic: myapp-topic 
