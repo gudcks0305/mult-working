@@ -48,3 +48,4 @@ coverage.html
 
 # Go 워크스페이스 파일
 go.work 
+.qodo
