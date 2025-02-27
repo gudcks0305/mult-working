@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
+import React, { useState } from 'react';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
   disabled?: boolean;
   disabledMessage?: string;
   onReconnect?: () => void;
+  className?: string;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
@@ -15,6 +16,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   disabled = false,
   disabledMessage = '',
   onReconnect,
+  className,
 }) => {
   const [message, setMessage] = useState('');
   
@@ -27,7 +29,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   };
   
   return (
-    <div className="p-2 border-t border-border bg-background relative z-20">
+    <div className={`p-2 border-t border-border bg-background relative z-20 ${className}`}>
       <form 
         onSubmit={handleSubmit}
         className="flex items-center gap-2 p-2 bg-card rounded-lg shadow-sm"

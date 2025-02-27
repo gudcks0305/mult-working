@@ -1,11 +1,11 @@
-import React, { useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useRoomStore } from '../store/roomStore';
-import { useMessageStore } from '../store/messageStore';
+import React, { useCallback, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import RoomHeader from './chat/RoomHeader';
-import MessageList from './chat/MessageList';
+import { useMessageStore } from '../store/messageStore';
+import { useRoomStore } from '../store/roomStore';
 import MessageInput from './chat/MessageInput';
+import MessageList from './chat/MessageList';
+import RoomHeader from './chat/RoomHeader';
 
 const ChatRoom: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -176,7 +176,9 @@ const ChatRoom: React.FC = () => {
         disabled={connectionStatus !== 'connected'}
         disabledMessage="메시지를 보내려면 연결이 필요합니다."
         onReconnect={connectionStatus === 'disconnected' ? handleReconnect : undefined}
+        className="mb-12"
       />
+    
     </div>
   );
 };

@@ -1,9 +1,9 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, MessageSquare, Users } from "lucide-react";
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, ArrowRight } from "lucide-react";
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -126,7 +126,7 @@ const HomePage: React.FC = () => {
       {/* 푸터 */}
       <footer className="py-8 border-t">
         <div className="text-center text-muted-foreground">
-          <p>&copy; 2023 채팅 애플리케이션. 모든 권리 보유.</p>
+          <p>&copy; 2025 채팅 애플리케이션. 모든 권리 보유.</p>
           <div className="mt-2 flex justify-center gap-4">
             <Link to="/terms" className="text-sm hover:underline">이용약관</Link>
             <Link to="/privacy" className="text-sm hover:underline">개인정보처리방침</Link>
