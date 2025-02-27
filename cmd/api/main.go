@@ -74,8 +74,8 @@ func startServer(p HandlerParams) {
 				p.Router.NoRoute(func(c *gin.Context) {
 					c.File("./client/dist/index.html")
 				})*/
+				go p.Router.RunTLS(":"+p.Config.Server.Port, "localhost.pem", "localhost-key.pem")
 
-				go p.Router.Run(":" + p.Config.Server.Port)
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {

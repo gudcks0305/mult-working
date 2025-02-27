@@ -1,10 +1,9 @@
 package middleware
 
 import (
+	"github.com/gin-gonic/gin"
 	"mult-working/internal/errors"
 	"mult-working/internal/service"
-
-	"github.com/gin-gonic/gin"
 )
 
 // AuthMiddleware는 인증이 필요한 라우트를 보호하는 미들웨어입니다
@@ -25,7 +24,6 @@ func JWTAuthMiddleware(authService *service.AuthService) gin.HandlerFunc {
 			c.AbortWithStatusJSON(appErr.StatusCode, gin.H{"error": appErr.Message})
 			return
 		}
-
 		// 토큰 검증
 		userID, err := authService.VerifyToken(token)
 		if err != nil {

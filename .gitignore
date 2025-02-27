@@ -42,7 +42,7 @@ coverage.html
 
 # 임시 파일
 /tmp/
-
+tmp
 # 로컬 설정 파일 (필요에 따라 주석 처리)
 # config/config.local.yml
 

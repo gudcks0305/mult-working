@@ -1,9 +1,6 @@
 import { create } from 'zustand';
+import { Message, MessageState } from '../types/message';
 import api from '../utils/axios';
-import { useAuthStore } from './authStore';
-import { Message, ConnectionStatus, MessageState } from '../types/message';
-import { createWebSocketUrl, calculateReconnectDelay, shouldRetryConnection } from '../utils/websocket';
-import { WEBSOCKET_RECONNECT_MAX_ATTEMPTS } from '../constants';
 
 // 한 페이지당 메시지 수
 const PAGE_SIZE = 20;
@@ -104,7 +101,8 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       }
       
       // WebSocket URL 확인 - 백엔드 주소와 일치해야 함
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsProtocol = 'wss:'
       // 개발 환경에서는 다른 포트를 사용할 수 있으므로 조건부 URL 생성
       const baseUrl = import.meta.env.DEV ? 'localhost:8080' : window.location.host;
       const wsUrl = `${wsProtocol}//${baseUrl}/api/ws?token=${token}`;

@@ -1,6 +1,6 @@
-import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import React from 'react';
 import { Message as MessageType } from '../../types/message';
 import { formatMessageTime } from '../../utils/date';
 
@@ -22,9 +22,9 @@ const Message: React.FC<MessageProps> = ({ message, isCurrentUser }) => {
         </Avatar>
       )}
       
-      <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-        <Card className={`max-w-[80%] ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
-          <CardContent className="p-3 break-words">
+      <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[90%]`}>
+        <Card className={`w-full ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-card'}`}>
+          <CardContent className="px-4 py-2 break-words text-base">
             {message.content}
           </CardContent>
         </Card>
